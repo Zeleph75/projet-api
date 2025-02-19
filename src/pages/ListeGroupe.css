@@ -1,0 +1,45 @@
+.container_page_groupe {
+    background-color: #7676ff;
+    display: flex;
+    justify-content: space-around;
+}
+.container_info_groupe{
+    display: flex;
+    background-color: #888888;
+    margin-top: 2%;
+}
+.bouton_rejoindre_groupe{
+    display: block;
+    margin-top: 5px;
+    border-radius: 50%;
+    font-size: 16px;
+    background-color: #000000;
+    height: 50px;
+    width: 50px;
+}
+.partage_lien_spotify{
+    width: 100%;
+    resize: none;
+    height: 50vh;
+}
+.container_bouton_rejoindre_groupe{
+    border-right: solid 3px #000000;
+    padding: 2%;
+
+}
+.liste_utilisateur{
+    border-left: solid 3px #000000;
+
+}
+.utilisateur{
+    border-bottom: solid 2px #000000;
+}
+.container_liste_groupe{
+    display: flex;
+    flex-direction: column;
+    background-color: #afa3a3;
+    padding: 3%;
+}
+.titre_liste_salon{
+    margin: 0;
+}
