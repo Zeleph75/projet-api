@@ -1,0 +1,34 @@
+{
+  "users": [
+    {
+      "email": "user1@example.com",
+      "password": "password123",
+      "group": "Salon A"
+    },
+    {
+      "email": "user2@example.com",
+      "password": "securepass",
+      "group": "Salon C"
+    }
+  ],
+  "salons": [
+    {
+      "name": "Salon A",
+      "members": [
+        "user1@example.com"
+      ],
+      "roles": {
+        "user1@example.com": "admin"
+      }
+    },
+    {
+      "name": "Salon C",
+      "members": [
+        "user2@example.com"
+      ],
+      "roles": {
+        "user2@example.com": "admin"
+      }
+    }
+  ]
+}
