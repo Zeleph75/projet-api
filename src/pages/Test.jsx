@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // Pour la redirectionimport { jwtDecode } from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import "./ListeGroupe.css";
 
 export default function TestPage() {
@@ -6,22 +8,59 @@ export default function TestPage() {
     const [users, setUsers] = useState([]);
     const [showGroups, setShowGroups] = useState(true);
     const [salons, setSalons] = useState([]);
-    const [currentUser, setCurrentUser] = useState(null); // Utilisateur connecté
+    const [currentUser, setCurrentUser] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        fetch("/users.json")
-            .then(response => response.json())
-            .then(data => {
-                setUsers(data.users || []);
-                setSalons(data.salons || []);
+        const token = localStorage.getItem("token");
 
-                // Définit user1@example.com comme utilisateur par défaut
-                const defaultUser = data.users.find(user => user.email === "user2@example.com") || null;
-                setCurrentUser(defaultUser);
-                if (defaultUser) setGroupName(defaultUser.group || "");
+        if (!token) {
+            navigate("/"); // Redirige si pas de token
+            return;
+        }
+
+        // ✅ Décode le token pour récupérer l'email
+        try {
+            const decoded = jwtDecode(token);
+            if (!decoded.email) throw new Error("Email non valide dans le token");
+
+            const userEmail = decoded.email;
+
+            fetch("http://localhost:5000/data", {
+                headers: { Authorization: `Bearer ${token}` },
             })
-            .catch(error => console.error("Erreur lors de la récupération des données:", error));
-    }, []);
+                .then(response => {
+                    if (!response.ok) throw new Error("Erreur d'authentification");
+                    return response.json();
+                })
+                .then(data => {
+                    setUsers(data.users || []);
+                    setSalons(data.salons || []);
+
+                    const loggedInUser = data.users.find(user => user.email === userEmail) || null;
+                    if (!loggedInUser) {
+                        handleLogout(); // Déconnexion si l'utilisateur n'existe pas
+                        return;
+                    }
+
+                    setCurrentUser(loggedInUser);
+                    setGroupName(loggedInUser.group || "");
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la récupération des données:", error);
+                    handleLogout(); // Redirige en cas de problème
+                });
+
+        } catch (error) {
+            console.error("Token invalide ou expiré :", error);
+            handleLogout(); // Déconnexion automatique
+        }
+    }, [navigate]);
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        navigate("/"); // Redirige vers la page d'accueil
+    };
 
     const handleJoinGroup = async () => {
         if (!currentUser) return alert("Aucun utilisateur connecté");
@@ -29,55 +68,54 @@ export default function TestPage() {
         const name = prompt("Entrez le nom du groupe :");
         if (!name) return;
 
-        // Mise à jour locale des utilisateurs
         const updatedUsers = users.map(user =>
             user.email === currentUser.email ? { ...user, group: name } : user
         );
         setUsers(updatedUsers);
         setGroupName(name);
 
-        // Mise à jour locale des salons
         const updatedSalons = salons.map(salon => {
-            // Retirer l'utilisateur de l'ancien salon
             if (salon.members.includes(currentUser.email)) {
                 salon.members = salon.members.filter(member => member !== currentUser.email);
             }
             return salon;
         });
 
-        // Ajouter l'utilisateur au nouveau salon
         const salonIndex = updatedSalons.findIndex(salon => salon.name === name);
         if (salonIndex !== -1) {
-            // Si le salon existe, on ajoute l'utilisateur s'il n'y est pas déjà
             if (!updatedSalons[salonIndex].members.includes(currentUser.email)) {
                 updatedSalons[salonIndex].members.push(currentUser.email);
             }
         } else {
-            // Si le salon n'existe pas, on en crée un nouveau
             updatedSalons.push({
                 name,
                 members: [currentUser.email],
-                roles: { [currentUser.email]: "admin" } // Attribuer le rôle d'administrateur à l'utilisateur
+                roles: { [currentUser.email]: "admin" }
             });
         }
 
-        // Supprimer les salons vides (si leur tableau de membres est vide)
         const cleanedSalons = updatedSalons.filter(salon => salon.members.length > 0);
-
         setSalons(cleanedSalons);
 
-        // Envoi des données mises à jour au serveur (si backend disponible)
         try {
-            await fetch("http://localhost:5000/update-group", { // URL du backend
+            const token = localStorage.getItem("token");
+
+            await fetch("http://localhost:5000/update-group", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
                 body: JSON.stringify({ users: updatedUsers })
             });
 
-            await fetch("http://localhost:5000/update-salons", { // URL du backend
+            await fetch("http://localhost:5000/update-salons", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ salons: cleanedSalons }) // Envoie des salons nettoyés
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ salons: cleanedSalons })
             });
 
             console.log("Mise à jour réussie !");
@@ -86,7 +124,6 @@ export default function TestPage() {
         }
     };
 
-    // Compter le nombre d'utilisateurs dans le même groupe que currentUser
     const getUsersInSameGroup = () => {
         if (!currentUser || !currentUser.group) return 0;
         return users.filter(user => user.group === currentUser.group).length;
@@ -94,13 +131,11 @@ export default function TestPage() {
 
     return (
         <div className="container my-5">
-            {/* Section Utilisateur */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2>Connecté en tant que {currentUser ? currentUser.email : "Invité"}</h2>
-                <button className="btn btn-danger" onClick={() => navigate("/login")}>Se déconnecter</button>
+                <button className="btn btn-danger" onClick={handleLogout}>Se déconnecter</button>
             </div>
 
-            {/* Rejoindre un groupe */}
             <div className="card shadow-sm p-4 mb-4">
                 <div className="d-flex align-items-center">
                     <button className="btn btn-success me-3" onClick={handleJoinGroup}>+</button>
@@ -111,7 +146,6 @@ export default function TestPage() {
                 )}
             </div>
 
-            {/* Liste des utilisateurs du groupe */}
             <div className="card shadow-sm p-4 mb-4">
                 <h3>Membres du groupe</h3>
                 <ul className="list-group">
@@ -127,7 +161,6 @@ export default function TestPage() {
                 </ul>
             </div>
 
-            {/* Liste des salons */}
             <button onClick={() => setShowGroups(!showGroups)} className="btn btn-secondary mb-4">
                 {showGroups ? "Cacher" : "Afficher"} la liste des salons
             </button>

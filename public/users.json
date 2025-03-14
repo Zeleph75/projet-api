@@ -8,7 +8,7 @@
     {
       "email": "user2@example.com",
       "password": "securepass",
-      "group": "Salon C"
+      "group": "Salon B"
     },
     {
       "password": "testpassword"
@@ -32,6 +32,11 @@
     {
       "email": "pela01@gmail.com",
       "password": "$2b$10$r8RbO2cq4DdHCLQZ2r9qrusHzyt6mYGIKtjm1DRNFlZRnTY4Sqpv."
+    },
+    {
+      "email": "ethan.bermond@ynov.com",
+      "password": "$2b$10$BU/Ll1HrEM/MJgzM5.70OeinQwK2KxNdHK4O9oq6eq3OYx.fwN7Fu",
+      "group": "Salon B"
     }
   ],
   "salons": [
@@ -45,9 +50,10 @@
       }
     },
     {
-      "name": "Salon C",
+      "name": "Salon B",
       "members": [
-        "user2@example.com"
+        "user2@example.com",
+        "ethan.bermond@ynov.com"
       ],
       "roles": {
         "user2@example.com": "admin"

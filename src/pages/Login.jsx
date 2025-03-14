@@ -11,11 +11,11 @@ export default function LoginPage() {
     const [users, setUsers] = useState([]);
     const navigate = useNavigate();
 
-    // useEffect(() => {
-    //     fetch("/users.json")
-    //         .then((response) => response.json())
-    //         .then((data) => setUsers(data.users));
-    // }, []);
+     useEffect(() => {
+        fetch("/users.json")
+            .then((response) => response.json())
+            .then((data) => setUsers(data.users));
+     }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
