@@ -18,7 +18,7 @@
     {
       "email": "nahteb@hotmail.fr",
       "password": "$2b$10$BNiC5ODkK7nveoBsecxyxeqkZaX/.5myrw5Do/.Mhd/3Blf7hH8dW",
-      "group": "Salon C"
+      "group": "Salon A"
     },
     {
       "email": "123@test.com",
@@ -31,7 +31,8 @@
       "name": "Salon A",
       "members": [
         "user1@example.com",
-        "ethan.bermond@ynov.com"
+        "ethan.bermond@ynov.com",
+        "nahteb@hotmail.fr"
       ],
       "roles": {
         "ethan.bermond@ynov.com": "admin"
@@ -49,7 +50,6 @@
     {
       "name": "Salon C",
       "members": [
-        "nahteb@hotmail.fr",
         "123@test.com"
       ],
       "roles": {

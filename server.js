@@ -1,9 +1,10 @@
 import express from "express";
-import fs from "fs/promises"; // Utilisation des Promises pour éviter les callbacks
+import fs from "fs/promises";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
+import setupSwagger from "./swagger.js"; // Import Swagger
 
 dotenv.config();
 
@@ -11,12 +12,14 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+setupSwagger(app); // Ajout de Swagger UI
+
 const USERS_FILE = "./public/users.json";
 const SECRET_KEY = process.env.SECRET_KEY || "supersecretkey";
 
 // Middleware d'authentification
 const authenticateToken = (req, res, next) => {
-    const token = req.headers["authorization"]?.split(" ")[1]; // Récupérer le token
+    const token = req.headers["authorization"]?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Accès non autorisé" });
 
     jwt.verify(token, SECRET_KEY, (err, user) => {
@@ -26,7 +29,28 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-// Route pour s'inscrire
+/**
+ * @swagger
+ * /register:
+ *   post:
+ *     summary: Inscription d'un nouvel utilisateur
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Inscription réussie
+ *       400:
+ *         description: Email déjà utilisé
+ */
 app.post("/register", async (req, res) => {
     const { email, password } = req.body;
 
@@ -50,7 +74,28 @@ app.post("/register", async (req, res) => {
     }
 });
 
-// Route pour se connecter
+/**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: Connexion d'un utilisateur
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Connexion réussie, retourne un token
+ *       400:
+ *         description: Utilisateur non trouvé ou mot de passe incorrect
+ */
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -78,7 +123,44 @@ app.post("/login", async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /data:
+ *   get:
+ *     summary: Récupérer les utilisateurs et salons (nécessite un token)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Données récupérées avec succès
+ *       401:
+ *         description: Accès non autorisé
+ */
 // Route protégée pour récupérer les utilisateurs et salons
+/**
+ * @swagger
+ * /data:
+ *   get:
+ *     summary: Récupérer les utilisateurs et salons (nécessite un token)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Données récupérées avec succès
+ *         content:
+ *           application/json:
+ *             example:
+ *               users:
+ *                 - email: "test@example.com"
+ *                   group: "Admin"
+ *               salons:
+ *                 - name: "Salon 1"
+ *                   members: ["test@example.com"]
+ *       401:
+ *         description: Accès non autorisé (token manquant ou invalide)
+ *       500:
+ *         description: Erreur serveur
+ */
 app.get("/data", authenticateToken, async (req, res) => {
     try {
         const data = await fs.readFile(USERS_FILE, "utf8");
@@ -89,8 +171,39 @@ app.get("/data", authenticateToken, async (req, res) => {
     }
 });
 
-// 🔹 Route pour mettre à jour les groupes (utilisateurs)
-app.post("/update-group", async (req, res) => {
+/**
+ * @swagger
+ * /update-group:
+ *   post:
+ *     summary: Mettre à jour les groupes d'utilisateurs
+ *     description: Met à jour la liste des utilisateurs et supprime ceux qui n'ont pas de groupe.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               users:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     email:
+ *                       type: string
+ *                     group:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Utilisateurs mis à jour avec succès
+ *       400:
+ *         description: Données invalides
+ *       500:
+ *         description: Erreur serveur
+ */
+app.post("/update-group", authenticateToken, async (req, res) => {
     const { users } = req.body;
 
     if (!users || !Array.isArray(users)) {
@@ -113,8 +226,45 @@ app.post("/update-group", async (req, res) => {
     }
 });
 
-// 🔹 Route pour mettre à jour les salons
-app.post("/update-salons", async (req, res) => {
+/**
+ * @swagger
+ * /update-salons:
+ *   post:
+ *     summary: Mettre à jour les salons
+ *     description: Met à jour la liste des salons, supprime les salons vides et assigne un nouvel admin si nécessaire.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               salons:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     members:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     roles:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: string
+ *     responses:
+ *       200:
+ *         description: Salons mis à jour avec succès
+ *       400:
+ *         description: Données invalides
+ *       500:
+ *         description: Erreur serveur
+ */
+app.post("/update-salons", authenticateToken, async (req, res) => {
     const { salons } = req.body;
 
     if (!salons || !Array.isArray(salons)) {
@@ -162,7 +312,6 @@ app.post("/update-salons", async (req, res) => {
         res.status(500).json({ message: "Erreur serveur." });
     }
 });
-
 
 
 // 🔹 Démarrer le serveur
