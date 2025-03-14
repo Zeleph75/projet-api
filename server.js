@@ -101,7 +101,8 @@ app.post("/update-group", async (req, res) => {
         const data = await fs.readFile(USERS_FILE, "utf8");
         let jsonData = JSON.parse(data);
 
-        jsonData.users = users; // Mise à jour des utilisateurs
+        // Suppression des utilisateurs sans groupe
+        jsonData.users = users.filter(user => user.group);
 
         await fs.writeFile(USERS_FILE, JSON.stringify(jsonData, null, 2));
         res.status(200).json({ message: "Utilisateurs mis à jour avec succès" });
@@ -124,8 +125,34 @@ app.post("/update-salons", async (req, res) => {
         const data = await fs.readFile(USERS_FILE, "utf8");
         let jsonData = JSON.parse(data);
 
-        // Suppression des salons vides
-        jsonData.salons = salons.filter(salon => salon.members && salon.members.length > 0);
+        jsonData.salons = salons
+            .filter(salon => salon.members && salon.members.length > 0) // Supprime les salons vides
+            .map(salon => {
+                let currentAdmins = Object.entries(salon.roles)
+                    .filter(([email, role]) => role === "admin" && salon.members.includes(email))
+                    .map(([email]) => email);
+
+                // Supprimer les admins qui ont quitté
+                for (let admin of currentAdmins) {
+                    if (!salon.members.includes(admin)) {
+                        delete salon.roles[admin];
+                    }
+                }
+
+                // Récupérer les admins restants après la suppression
+                let remainingAdmins = Object.entries(salon.roles)
+                    .filter(([email, role]) => role === "admin" && salon.members.includes(email))
+                    .map(([email]) => email);
+
+                // Si plus aucun admin, attribuer un nouvel admin aléatoire
+                if (remainingAdmins.length === 0 && salon.members.length > 0) {
+                    const newAdmin = salon.members[Math.floor(Math.random() * salon.members.length)];
+                    salon.roles[newAdmin] = "admin";
+                    console.log(`Nouvel admin assigné à ${salon.name} : ${newAdmin}`);
+                }
+
+                return salon;
+            });
 
         await fs.writeFile(USERS_FILE, JSON.stringify(jsonData, null, 2));
         res.status(200).json({ message: "Salons mis à jour avec succès" });
@@ -135,6 +162,8 @@ app.post("/update-salons", async (req, res) => {
         res.status(500).json({ message: "Erreur serveur." });
     }
 });
+
+
 
 // 🔹 Démarrer le serveur
 const PORT = 5000;

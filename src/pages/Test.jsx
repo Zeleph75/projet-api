@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // Pour la redirectionimport { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import "./ListeGroupe.css";
 
@@ -15,51 +15,56 @@ export default function TestPage() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            navigate("/"); // Redirige si pas de token
+            navigate("/");
             return;
         }
 
-        // ✅ Décode le token pour récupérer l'email
         try {
             const decoded = jwtDecode(token);
             if (!decoded.email) throw new Error("Email non valide dans le token");
 
             const userEmail = decoded.email;
 
-            fetch("http://localhost:5000/data", {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-                .then(response => {
-                    if (!response.ok) throw new Error("Erreur d'authentification");
-                    return response.json();
+            const fetchData = () => {
+                fetch("http://localhost:5000/data", {
+                    headers: { Authorization: `Bearer ${token}` },
                 })
-                .then(data => {
-                    setUsers(data.users || []);
-                    setSalons(data.salons || []);
+                    .then(response => {
+                        if (!response.ok) throw new Error("Erreur d'authentification");
+                        return response.json();
+                    })
+                    .then(data => {
+                        setUsers(data.users || []);
+                        setSalons(data.salons || []);
 
-                    const loggedInUser = data.users.find(user => user.email === userEmail) || null;
-                    if (!loggedInUser) {
-                        handleLogout(); // Déconnexion si l'utilisateur n'existe pas
-                        return;
-                    }
+                        const loggedInUser = data.users.find(user => user.email === userEmail) || null;
+                        if (!loggedInUser) {
+                            handleLogout();
+                            return;
+                        }
 
-                    setCurrentUser(loggedInUser);
-                    setGroupName(loggedInUser.group || "");
-                })
-                .catch(error => {
-                    console.error("Erreur lors de la récupération des données:", error);
-                    handleLogout(); // Redirige en cas de problème
-                });
+                        setCurrentUser(loggedInUser);
+                        setGroupName(loggedInUser.group || "");
+                    })
+                    .catch(error => {
+                        console.error("Erreur lors de la récupération des données:", error);
+                        handleLogout();
+                    });
+            };
 
+            fetchData();
+            const interval = setInterval(fetchData, 1000); // 🔄 Mise à jour toutes les 1s
+
+            return () => clearInterval(interval);
         } catch (error) {
             console.error("Token invalide ou expiré :", error);
-            handleLogout(); // Déconnexion automatique
+            handleLogout();
         }
     }, [navigate]);
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        navigate("/"); // Redirige vers la page d'accueil
+        navigate("/");
     };
 
     const handleJoinGroup = async () => {
@@ -139,27 +144,29 @@ export default function TestPage() {
             <div className="card shadow-sm p-4 mb-4">
                 <div className="d-flex align-items-center">
                     <button className="btn btn-success me-3" onClick={handleJoinGroup}>+</button>
-                    {groupName && <h3>Groupe Rejoint : {groupName}</h3>}
+                    {groupName ? <h3>Groupe Rejoint : {groupName}</h3> : <h3>Aucun groupe rejoint</h3>}
                 </div>
-                {currentUser && currentUser.group && (
+                {currentUser?.group && (
                     <p className="mt-2">Nombre d'utilisateurs dans ce groupe : {getUsersInSameGroup()}</p>
                 )}
             </div>
 
-            <div className="card shadow-sm p-4 mb-4">
-                <h3>Membres du groupe</h3>
-                <ul className="list-group">
-                    {users.filter(user => user.group === currentUser?.group).map((user, index) => {
-                        const userSalon = salons.find(salon => salon.name === user.group);
-                        const role = userSalon?.roles?.[user.email] === "admin" ? "Admin" : "Membre";
-                        return (
-                            <li key={index} className="list-group-item d-flex justify-content-between">
-                                {user.email} - <span className="fw-bold">{role}</span>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </div>
+            {currentUser?.group && (
+                <div className="card shadow-sm p-4 mb-4">
+                    <h3>Membres du groupe</h3>
+                    <ul className="list-group">
+                        {users.filter(user => user.group === currentUser?.group).map((user, index) => {
+                            const userSalon = salons.find(salon => salon.name === user.group);
+                            const role = userSalon?.roles?.[user.email] === "admin" ? "Admin" : "Membre";
+                            return (
+                                <li key={index} className="list-group-item d-flex justify-content-between">
+                                    {user.email} - <span className="fw-bold">{role}</span>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
+            )}
 
             <button onClick={() => setShowGroups(!showGroups)} className="btn btn-secondary mb-4">
                 {showGroups ? "Cacher" : "Afficher"} la liste des salons

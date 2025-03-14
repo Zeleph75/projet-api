@@ -11,52 +11,49 @@
       "group": "Salon B"
     },
     {
-      "password": "testpassword"
-    },
-    {
-      "email": "pelagie@.gmail",
-      "password": "test"
-    },
-    {
-      "email": "pelagie.aintangar01@gmail.com",
-      "password": "Azerty"
-    },
-    {
-      "email": "aintangar01@gmail.com",
-      "password": "Azerty123"
-    },
-    {
-      "email": "pelagie01@gmail.com",
-      "password": "PelA"
-    },
-    {
-      "email": "pela01@gmail.com",
-      "password": "$2b$10$r8RbO2cq4DdHCLQZ2r9qrusHzyt6mYGIKtjm1DRNFlZRnTY4Sqpv."
-    },
-    {
       "email": "ethan.bermond@ynov.com",
       "password": "$2b$10$BU/Ll1HrEM/MJgzM5.70OeinQwK2KxNdHK4O9oq6eq3OYx.fwN7Fu",
-      "group": "Salon B"
+      "group": "Salon A"
+    },
+    {
+      "email": "nahteb@hotmail.fr",
+      "password": "$2b$10$BNiC5ODkK7nveoBsecxyxeqkZaX/.5myrw5Do/.Mhd/3Blf7hH8dW",
+      "group": "Salon C"
+    },
+    {
+      "email": "123@test.com",
+      "password": "$2b$10$pV/tVAeBgz6iwyXObd8JZ.0cviX80kItZ64SLzrjJO5jrCtPG7wXe",
+      "group": "Salon C"
     }
   ],
   "salons": [
     {
       "name": "Salon A",
       "members": [
-        "user1@example.com"
+        "user1@example.com",
+        "ethan.bermond@ynov.com"
       ],
       "roles": {
-        "user1@example.com": "admin"
+        "ethan.bermond@ynov.com": "admin"
       }
     },
     {
       "name": "Salon B",
       "members": [
-        "user2@example.com",
-        "ethan.bermond@ynov.com"
+        "user2@example.com"
       ],
       "roles": {
         "user2@example.com": "admin"
+      }
+    },
+    {
+      "name": "Salon C",
+      "members": [
+        "nahteb@hotmail.fr",
+        "123@test.com"
+      ],
+      "roles": {
+        "123@test.com": "admin"
       }
     }
   ]
