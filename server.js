@@ -1,93 +1,82 @@
-import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import cors from 'cors';
+import express from "express";
+import fs from "fs/promises"; // Utilisation des Promises pour éviter les callbacks
+import cors from "cors";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
+
+dotenv.config(); // Charger les variables d'environnement
 
 const app = express();
+app.use(express.json());
+app.use(cors());
+
+const USERS_FILE = "./public/users.json";
+const SECRET_KEY = process.env.SECRET_KEY || "supersecretkey"; // 🔐 Utilisation d'une clé sécurisée
+
+// 🔹 Route pour inscrire un utilisateur (REGISTER)
+app.post("/register", async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        const data = await fs.readFile(USERS_FILE, "utf8");
+        let usersData = JSON.parse(data);
+
+        // Vérifie si l'utilisateur existe déjà
+        if (usersData.users.some(user => user.email === email)) {
+            return res.status(400).json({ message: "Cet email est déjà utilisé." });
+        }
+
+        // Hache le mot de passe avant de l'enregistrer
+        const hashedPassword = bcrypt.hashSync(password, 10);
+
+        // Ajoute le nouvel utilisateur
+        usersData.users.push({ email, password: hashedPassword });
+
+        // Sauvegarde dans users.json
+        await fs.writeFile(USERS_FILE, JSON.stringify(usersData, null, 2));
+
+        res.status(201).json({ message: "Inscription réussie !" });
+
+    } catch (err) {
+        console.error("Erreur serveur :", err);
+        res.status(500).json({ message: "Erreur serveur." });
+    }
+});
+
+// 🔹 Route pour la connexion (LOGIN)
+app.post("/login", async (req, res) => {
+    const { email, password } = req.body;
+
+    try {
+        const data = await fs.readFile(USERS_FILE, "utf8");
+        let usersData = JSON.parse(data);
+
+        // Vérifie si l'utilisateur existe
+        const user = usersData.users.find(user => user.email === email);
+        if (!user) {
+            return res.status(400).json({ message: "Utilisateur non trouvé." });
+        }
+
+        // Vérifie le mot de passe avec bcrypt
+        const isMatch = bcrypt.compareSync(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Mot de passe incorrect." });
+        }
+
+        // Génère un Token JWT valable 1 heure
+        const token = jwt.sign({ email: user.email }, SECRET_KEY, { expiresIn: "1h" });
+
+        res.json({ message: "Connexion réussie !", token });
+
+    } catch (err) {
+        console.error("Erreur serveur :", err);
+        res.status(500).json({ message: "Erreur serveur." });
+    }
+});
+
+// 🔹 Démarrer le serveur
 const PORT = 5000;
-
-// Vérifier que le serveur démarre bien
-console.log("Le serveur est en train de démarrer...");
-
-app.use(cors()); // Permettre les requêtes cross-origin
-app.use(express.json()); // Pour analyser les requêtes en JSON
-
-const filePath = path.join(process.cwd(), "public", "users.json");
-
-// Route pour mettre à jour les groupes d'utilisateurs
-app.post("/update-group", (req, res) => {
-    console.log("Requête reçue pour /update-group");
-
-    const { users } = req.body;
-    if (!users) {
-        return res.status(400).json({ message: "Données invalides" });
-    }
-
-    fs.readFile(filePath, "utf8", (err, data) => {
-        if (err) {
-            console.error("Erreur lors de la lecture du fichier:", err);
-            return res.status(500).json({ message: "Erreur de lecture du fichier", error: err });
-        }
-
-        let jsonData;
-        try {
-            jsonData = JSON.parse(data);
-        } catch (parseError) {
-            console.error("Erreur lors du parsing JSON:", parseError);
-            return res.status(500).json({ message: "Erreur de parsing JSON", error: parseError });
-        }
-
-        jsonData.users = users; // Met à jour les utilisateurs
-
-        fs.writeFile(filePath, JSON.stringify(jsonData, null, 2), (err) => {
-            if (err) {
-                console.error("Erreur d'écriture du fichier:", err);
-                return res.status(500).json({ message: "Erreur de sauvegarde", error: err });
-            }
-            res.status(200).json({ message: "Utilisateurs mis à jour avec succès" });
-        });
-    });
-});
-
-// Route pour mettre à jour la liste des salons
-app.post("/update-salons", (req, res) => {
-    console.log("Requête reçue pour /update-salons");
-
-    const { salons } = req.body;
-    if (!salons) {
-        return res.status(400).json({ message: "Données invalides" });
-    }
-
-    fs.readFile(filePath, "utf8", (err, data) => {
-        if (err) {
-            console.error("Erreur lors de la lecture du fichier:", err);
-            return res.status(500).json({ message: "Erreur de lecture du fichier", error: err });
-        }
-
-        let jsonData;
-        try {
-            jsonData = JSON.parse(data);
-        } catch (parseError) {
-            console.error("Erreur lors du parsing JSON:", parseError);
-            return res.status(500).json({ message: "Erreur de parsing JSON", error: parseError });
-        }
-
-        // Suppression des salons vides
-        const cleanedSalons = salons.filter(salon => salon.members.length > 0);
-
-        jsonData.salons = cleanedSalons; // Met à jour les salons après suppression des vides
-
-        fs.writeFile(filePath, JSON.stringify(jsonData, null, 2), (err) => {
-            if (err) {
-                console.error("Erreur d'écriture du fichier:", err);
-                return res.status(500).json({ message: "Erreur de sauvegarde", error: err });
-            }
-            res.status(200).json({ message: "Salons mis à jour avec succès" });
-        });
-    });
-});
-
-// Lancer le serveur
 app.listen(PORT, () => {
-    console.log(`✅ Serveur backend démarré sur http://localhost:${PORT}`);
+    console.log(`✅ Serveur démarré sur http://localhost:${PORT}`);
 });

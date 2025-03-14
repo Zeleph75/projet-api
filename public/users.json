@@ -9,6 +9,29 @@
       "email": "user2@example.com",
       "password": "securepass",
       "group": "Salon C"
+    },
+    {
+      "password": "testpassword"
+    },
+    {
+      "email": "pelagie@.gmail",
+      "password": "test"
+    },
+    {
+      "email": "pelagie.aintangar01@gmail.com",
+      "password": "Azerty"
+    },
+    {
+      "email": "aintangar01@gmail.com",
+      "password": "Azerty123"
+    },
+    {
+      "email": "pelagie01@gmail.com",
+      "password": "PelA"
+    },
+    {
+      "email": "pela01@gmail.com",
+      "password": "$2b$10$r8RbO2cq4DdHCLQZ2r9qrusHzyt6mYGIKtjm1DRNFlZRnTY4Sqpv."
     }
   ],
   "salons": [

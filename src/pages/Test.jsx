@@ -93,61 +93,60 @@ export default function TestPage() {
     };
 
     return (
-        <div>
-            <div className="container_page_groupe">
+        <div className="container my-5">
+            {/* Section Utilisateur */}
+            <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2>Connecté en tant que {currentUser ? currentUser.email : "Invité"}</h2>
-                <button className="btn btn-primary">Se déconnecter</button>
+                <button className="btn btn-danger" onClick={() => navigate("/login")}>Se déconnecter</button>
             </div>
 
-            <div className="container_info_groupe">
-                <div className="container_bouton_rejoindre_groupe">
-                    <button className="bouton_rejoindre_groupe" onClick={handleJoinGroup}>+</button>
+            {/* Rejoindre un groupe */}
+            <div className="card shadow-sm p-4 mb-4">
+                <div className="d-flex align-items-center">
+                    <button className="btn btn-success me-3" onClick={handleJoinGroup}>+</button>
                     {groupName && <h3>Groupe Rejoint : {groupName}</h3>}
-                    {currentUser && currentUser.group && (
-                        <p>Nombre d'utilisateurs dans ce groupe : {getUsersInSameGroup()}</p>
-                    )}
                 </div>
-                <textarea disabled className="partage_lien_spotify" />
-
-                <div className="liste_utilisateur">
-                    {users
-                        .filter(user => user.group === currentUser?.group) // Filtre les utilisateurs qui sont dans le même groupe que currentUser
-                        .map((user, index) => {
-                            // Trouver le salon auquel appartient l'utilisateur
-                            const userSalon = salons.find(salon => salon.name === user.group);
-
-                            // Vérifier si un salon a été trouvé et si l'utilisateur est un administrateur
-                            const role = userSalon?.roles?.[user.email] === "admin" ? "admin" : "user";
-
-                            return (
-                                <h2 key={index} className="utilisateur">
-                                    {user.email} - Groupe : {user.group || "Aucun"} - Rôle : {role}
-                                </h2>
-                            );
-                        })}
-                </div>
-
-
-
+                {currentUser && currentUser.group && (
+                    <p className="mt-2">Nombre d'utilisateurs dans ce groupe : {getUsersInSameGroup()}</p>
+                )}
             </div>
 
-            <button onClick={() => setShowGroups(!showGroups)} className="toggle_groups_button">
+            {/* Liste des utilisateurs du groupe */}
+            <div className="card shadow-sm p-4 mb-4">
+                <h3>Membres du groupe</h3>
+                <ul className="list-group">
+                    {users.filter(user => user.group === currentUser?.group).map((user, index) => {
+                        const userSalon = salons.find(salon => salon.name === user.group);
+                        const role = userSalon?.roles?.[user.email] === "admin" ? "Admin" : "Membre";
+                        return (
+                            <li key={index} className="list-group-item d-flex justify-content-between">
+                                {user.email} - <span className="fw-bold">{role}</span>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </div>
+
+            {/* Liste des salons */}
+            <button onClick={() => setShowGroups(!showGroups)} className="btn btn-secondary mb-4">
                 {showGroups ? "Cacher" : "Afficher"} la liste des salons
             </button>
 
             {showGroups && (
-                <div className="container_liste_groupe">
-                    <h1 className="titre_liste_salon">Liste des salons: </h1>
-                    <div className="container_info_groupe_utilisateur">
+                <div className="card shadow-sm p-4">
+                    <h3 className="mb-3">Liste des salons</h3>
+                    <div className="row">
                         {salons.length > 0 ? (
                             salons.map((salon, index) => (
-                                <div key={index} className="salon">
-                                    <h2>{salon.name}</h2>
-                                    <ul>
-                                        {salon.members.map((member, idx) => (
-                                            <li key={idx} className="liste_groupe_utilisateur">{member}</li>
-                                        ))}
-                                    </ul>
+                                <div key={index} className="col-md-4">
+                                    <div className="card mb-3 p-3">
+                                        <h5>{salon.name}</h5>
+                                        <ul className="list-unstyled">
+                                            {salon.members.map((member, idx) => (
+                                                <li key={idx} className="text-muted">{member}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
                                 </div>
                             ))
                         ) : (
