@@ -3,21 +3,24 @@ import fs from "fs/promises";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
-import setupSwagger from "./swagger.js"; // Import Swagger
+import session from "express-session";
+import passport from "passport";
+import { Strategy as SpotifyStrategy } from "passport-spotify";
 
-dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-setupSwagger(app); // Ajout de Swagger UI
+// Configuration de la session
+app.use(session({ secret: "spotify_secret", resave: true, saveUninitialized: true }));
+app.use(passport.initialize());
+app.use(passport.session());
 
 const USERS_FILE = "./public/users.json";
-const SECRET_KEY = process.env.SECRET_KEY || "supersecretkey";
+const SECRET_KEY = "supersecretkey"; // ⚠️ À changer en prod
 
-// Middleware d'authentification
+// Middleware d'authentification JWT
 const authenticateToken = (req, res, next) => {
     const token = req.headers["authorization"]?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Accès non autorisé" });
@@ -28,6 +31,121 @@ const authenticateToken = (req, res, next) => {
         next();
     });
 };
+
+// 📌 Configuration Passport.js avec Spotify
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((obj, done) => done(null, obj));
+
+passport.use(
+    new SpotifyStrategy(
+        {
+            clientID: "ab068ab78494424ab096c6ecd4e4a9f0",
+            clientSecret: "4de9e26299cc4ad4863bb72591426a9b",
+            callbackURL: "http://localhost:5000/callback"
+        },
+        async (accessToken, refreshToken, expires_in, profile, done) => {
+            try {
+                // Lire le fichier users.json
+                const data = await fs.readFile(USERS_FILE, "utf8");
+                let usersData = JSON.parse(data);
+
+                // Chercher l'utilisateur dans le fichier JSON
+                let user = usersData.users.find(user => user.email === profile.emails[0].value);
+
+                if (!user) {
+                    // Si l'utilisateur n'existe pas, on le crée
+                    user = {
+                        email: profile.emails[0].value,
+                        password: "",
+                        group: "",
+                        spotifyId: profile.id,
+                        display_name: profile.display_name,
+                        spotify_link: `https://open.spotify.com/user/${profile.id}`
+                    };
+                    usersData.users.push(user);
+                } else {
+                    // Mettre à jour l'utilisateur (SANS stocker accessToken)
+                    user.spotifyId = profile.id;
+                    user.display_name = profile.display_name;
+                    user.spotify_link = `https://open.spotify.com/user/${profile.id}`;
+                }
+
+                // Sauvegarder sans le token
+                await fs.writeFile(USERS_FILE, JSON.stringify(usersData, null, 2));
+
+                // Retourner l'utilisateur avec accessToken uniquement pour cette session
+                return done(null, { profile, accessToken });
+            } catch (err) {
+                return done(err);
+            }
+        }
+    )
+);
+
+// Callback de Spotify après l'authentification
+app.get("/callback", passport.authenticate("spotify", { failureRedirect: "/" }), (req, res) => {
+    const accessToken = req.user.accessToken;
+    const email = req.user.profile.emails[0].value;
+
+    console.log("Utilisateur connecté:", req.user.profile);
+
+    // Créer un token JWT pour authentification
+    const token = jwt.sign({ email: email }, SECRET_KEY, { expiresIn: "1h" });
+
+    // 🔹 Rediriger vers le front-end avec accessToken
+    res.redirect(`http://localhost:3000/auth-success?token=${token}&spotify_token=${accessToken}`);
+});
+
+
+
+
+// 📌 Routes d'authentification Spotify
+app.get("/auth/spotify", passport.authenticate("spotify", { scope: ["user-read-email", "user-read-private"] }));
+
+
+
+
+
+app.get("/success", (req, res) => {
+    res.json({ message: "Authentification réussie", user: req.user });
+});
+
+app.get("/logout", (req, res) => {
+    req.logout(() => {
+        res.redirect("/");
+    });
+});
+// 📌 Nouvelle route pour obtenir la musique en cours
+app.get("/current-track", authenticateToken, async (req, res) => {
+    const { accessToken } = req.user; // Utiliser le token d'accès Spotify
+
+    try {
+        const response = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (response.status === 204) {
+            return res.status(200).json({ message: "Aucune musique en cours." });
+        }
+
+        const data = await response.json();
+
+        if (data && data.item) {
+            const track = {
+                name: data.item.name,
+                artists: data.item.artists.map((artist) => artist.name).join(", "),
+                album: data.item.album.name,
+                image: data.item.album.images[0]?.url,
+            };
+            return res.json(track);
+        } else {
+            return res.status(400).json({ message: "Erreur lors de la récupération de la musique." });
+        }
+    } catch (error) {
+        console.error("Erreur lors de la récupération de la musique en cours:", error);
+        return res.status(500).json({ message: "Erreur serveur." });
+    }
+});
 
 /**
  * @swagger

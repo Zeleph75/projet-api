@@ -1,40 +1,67 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "../store/authStore";
 import React from "react";
-import { StrictMode } from "react";
+
 const CurrentTrack = () => {
     const token = useAuthStore((state) => state.token);
     const [track, setTrack] = useState(null);
+    const devicesRef = useRef([]);
+    const [isFetching, setIsFetching] = useState(false);
 
     useEffect(() => {
         if (!token) return;
 
-        const fetchCurrentTrack = async () => {
-            const response = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (response.status === 204) {
-                setTrack(null);
-                return;
-            }
-
-            const data = await response.json();
-            if (data && data.item) {
-                setTrack({
-                    name: data.item.name,
-                    artists: data.item.artists.map((artist) => artist.name).join(", "),
-                    album: data.item.album.name,
-                    image: data.item.album.images[0]?.url,
+        const fetchDevices = async () => {
+            try {
+                const response = await fetch("https://api.spotify.com/v1/me/player/devices", {
+                    headers: { Authorization: `Bearer ${token}` },
                 });
+
+                const data = await response.json();
+                if (JSON.stringify(devicesRef.current) !== JSON.stringify(data.devices)) {
+                    devicesRef.current = data.devices || [];
+                }
+            } catch (error) {
+                console.error("Erreur lors de la récupération des appareils :", error);
             }
         };
 
-        fetchCurrentTrack();
-        const interval = setInterval(fetchCurrentTrack, 1000); // Mise à jour toutes les 1s
+        const fetchCurrentTrack = async () => {
+            if (isFetching || devicesRef.current.length === 0) return;
 
+            setIsFetching(true);
+
+            try {
+                const response = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (response.status === 204) {
+                    setTrack(null);
+                } else {
+                    const data = await response.json();
+                    if (data && data.item) {
+                        setTrack({
+                            name: data.item.name,
+                            artists: data.item.artists.map((artist) => artist.name).join(", "),
+                            album: data.item.album.name,
+                            image: data.item.album.images[0]?.url,
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Erreur lors de la récupération du morceau :", error);
+            } finally {
+                setIsFetching(false);
+            }
+        };
+
+        fetchDevices();
+        fetchCurrentTrack();
+
+        const interval = setInterval(fetchCurrentTrack, 5000); // ⏳ Mise à jour toutes les 5s
         return () => clearInterval(interval);
-    }, [token]);
+    }, [token]); // 🔥 Suppression de `devices` des dépendances
 
     if (!track) {
         return <p className="text-gray-400">Aucune musique en cours</p>;
