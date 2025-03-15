@@ -13,13 +13,22 @@ export default function TestPage() {
     const [showGroups, setShowGroups] = useState(true);
     const [salons, setSalons] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
-    const [spotifyToken, setSpotifyToken] = useState(null);
     const navigate = useNavigate();
     const token = useAuthStore((state) => state.token);
 
     useEffect(() => {
+        // 🔹 Vérifier si un token Spotify est présent dans l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const spotifyTokenFromURL = urlParams.get("spotify_token");
+
+        if (spotifyTokenFromURL) {
+            localStorage.setItem("spotify_token", spotifyTokenFromURL);
+
+            // 🔹 Nettoyer l'URL après stockage
+            navigate("/test", { replace: true });
+        }
+
         const localToken = localStorage.getItem("token");
-        const localSpotifyToken = localStorage.getItem("spotify_token");
 
         if (!localToken) {
             navigate("/");
@@ -54,10 +63,8 @@ export default function TestPage() {
                         setGroupName(loggedInUser.group || "");
 
                         const userWithSpotifyToken = data.users.find(user => user.email === userEmail && user.accessToken);
-                        if (userWithSpotifyToken) {
-                            const tokenToUse = localSpotifyToken || userWithSpotifyToken.accessToken;
-                            setSpotifyToken(tokenToUse);
-                            localStorage.setItem("spotify_token", tokenToUse);
+                        if (userWithSpotifyToken && !localStorage.getItem("spotify_token")) {
+                            localStorage.setItem("spotify_token", userWithSpotifyToken.accessToken);
                         }
                     })
                     .catch(error => {
@@ -84,6 +91,11 @@ export default function TestPage() {
 
     const handleSpotifyLogin = () => {
         window.location.href = AUTH_URL;
+    };
+
+    const handleSpotifyLogout = () => {
+        localStorage.removeItem("spotify_token");
+        window.location.reload(); // Rafraîchir la page après la déconnexion
     };
 
     const handleJoinGroup = async () => {
@@ -163,11 +175,14 @@ export default function TestPage() {
             {/* 🔹 Intégration de Spotify */}
             <div className="card shadow-sm p-4 mb-4 bg-dark text-white">
                 <h3 className="mb-3">Spotify</h3>
-                {spotifyToken ? (
+                {localStorage.getItem("spotify_token") ? (
                     <>
                         <h2>Bienvenue dans l'interface Spotify</h2>
                         <UserProfile />
                         <CurrentTrack />
+                        <button onClick={handleSpotifyLogout} className="btn btn-warning mt-3">
+                            Se déconnecter de Spotify
+                        </button>
                     </>
                 ) : (
                     <button onClick={handleSpotifyLogin} className="btn btn-success">
@@ -187,20 +202,32 @@ export default function TestPage() {
                 )}
             </div>
 
-            {currentUser?.group && (
-                <div className="card shadow-sm p-4 mb-4">
-                    <h3>Membres du groupe</h3>
-                    <ul className="list-group">
-                        {users.filter(user => user.group === currentUser?.group).map((user, index) => {
-                            const userSalon = salons.find(salon => salon.name === user.group);
-                            const role = userSalon?.roles?.[user.email] === "admin" ? "Admin" : "Membre";
-                            return (
-                                <li key={index} className="list-group-item d-flex justify-content-between">
-                                    {user.email} - <span className="fw-bold">{role}</span>
-                                </li>
-                            );
-                        })}
-                    </ul>
+            {/* 🔹 Liste des salons */}
+            <button onClick={() => setShowGroups(!showGroups)} className="btn btn-secondary mb-4">
+                {showGroups ? "Cacher" : "Afficher"} la liste des salons
+            </button>
+
+            {showGroups && (
+                <div className="card shadow-sm p-4">
+                    <h3 className="mb-3">Liste des salons</h3>
+                    <div className="row">
+                        {salons.length > 0 ? (
+                            salons.map((salon, index) => (
+                                <div key={index} className="col-md-4">
+                                    <div className="card mb-3 p-3">
+                                        <h5>{salon.name}</h5>
+                                        <ul className="list-unstyled">
+                                            {salon.members.map((member, idx) => (
+                                                <li key={idx} className="text-muted">{member}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p>Aucun salon disponible</p>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

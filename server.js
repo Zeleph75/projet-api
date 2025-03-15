@@ -84,17 +84,18 @@ passport.use(
 
 // Callback de Spotify après l'authentification
 app.get("/callback", passport.authenticate("spotify", { failureRedirect: "/" }), (req, res) => {
+    if (!req.user) {
+        return res.redirect("http://localhost:5173/test?error=auth_failed");
+    }
+
+    // 🔹 Récupérer le token Spotify
     const accessToken = req.user.accessToken;
-    const email = req.user.profile.emails[0].value;
 
-    console.log("Utilisateur connecté:", req.user.profile);
-
-    // Créer un token JWT pour authentification
-    const token = jwt.sign({ email: email }, SECRET_KEY, { expiresIn: "1h" });
-
-    // 🔹 Rediriger vers le front-end avec accessToken
-    res.redirect(`http://localhost:3000/auth-success?token=${token}&spotify_token=${accessToken}`);
+    // 🔹 Rediriger vers le front-end avec le token en paramètre d'URL
+    res.redirect(`http://localhost:5173/test?spotify_token=${accessToken}`);
 });
+
+
 
 
 
