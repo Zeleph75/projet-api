@@ -59,7 +59,7 @@ const CurrentTrack = () => {
         fetchDevices();
         fetchCurrentTrack();
 
-        const interval = setInterval(fetchCurrentTrack, 5000); // ⏳ Mise à jour toutes les 5s
+        const interval = setInterval(fetchCurrentTrack, 3000); // ⏳ Mise à jour toutes les 5s
         return () => clearInterval(interval);
     }, [token]); // 🔥 Suppression de `devices` des dépendances
 
@@ -69,11 +69,11 @@ const CurrentTrack = () => {
 
     return (
         <div className="p-4 bg-gray-700 rounded-md flex items-center gap-2 w-64">
-            <img src={track.image} alt={track.album} className="w-10 h-10 rounded-md" />
+            <img src={track.image} alt={track.album} className="w-10 h-10 rounded-md"  style={{ width: "50%" }}/>
             <div className="text-white text-xs leading-tight">
-                <h3 className="text-lg font-bold">{track.name}</h3>
-                <p className="text-sm">{track.artists}</p>
-                <p className="text-xs text-gray-300">{track.album}</p>
+                <h3 className="text-lg font-bold text-dark">{track.name}</h3>
+                <p className="text-sm text-dark">{track.artists}</p>
+                <p className="text-xs text-dark">{track.album}</p>
             </div>
         </div>
     );

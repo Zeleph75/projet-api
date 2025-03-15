@@ -30,9 +30,9 @@ const UserProfile = () => {
 
     return (
         <div className="p-4 bg-gray-900 text-white rounded-lg">
-            <img src={user.images?.[0]?.url} alt="Profile" className="w-16 h-16 rounded-full" />
-            <h2 className="text-xl font-bold">{user.display_name}</h2>
-            <p>{user.email}</p>
+            <img src={user.images?.[0]?.url} alt="Profile" className="w-16 h-16 rounded-full text-dark" />
+            <h2 className="text-xl font-bold text-dark">{user.display_name}</h2>
+            <p className="text-dark">{user.email}</p>
         </div>
     );
 };

@@ -4,7 +4,9 @@ import { jwtDecode } from "jwt-decode";
 import { useAuthStore } from "../store/authStore";
 import UserProfile from "../components/UserProfile";
 import CurrentTrack from "../components/CurrentTrack";
+import CurrentTrack2 from "../components/CurrentTrack2"; // 🔥 Nouveau composant ajouté
 import { AUTH_URL } from "../utils/auth.js";
+
 import "./ListeGroupe.css";
 
 export default function TestPage() {
@@ -175,21 +177,43 @@ export default function TestPage() {
             {/* 🔹 Intégration de Spotify */}
             <div className="card shadow-sm p-4 mb-4 bg-dark text-white">
                 <h3 className="mb-3">Spotify</h3>
+
                 {localStorage.getItem("spotify_token") ? (
                     <>
                         <h2>Bienvenue dans l'interface Spotify</h2>
-                        <UserProfile />
-                        <CurrentTrack />
-                        <button onClick={handleSpotifyLogout} className="btn btn-warning mt-3">
+
+                        {/* Vérifier si l'utilisateur est dans un groupe */}
+                        {currentUser?.group && (
+                            <CurrentTrack2
+                                currentUser={currentUser}
+                                users={users}
+                                salons={salons}
+                                showForAdmin={!salons.find(salon => salon.name === currentUser.group)?.roles?.[currentUser.email] === "admin"}
+                            />
+                        )}
+
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem("spotify_token");
+                                window.location.reload();
+                            }}
+                            className="btn btn-warning mt-3"
+                        >
                             Se déconnecter de Spotify
                         </button>
                     </>
                 ) : (
-                    <button onClick={handleSpotifyLogin} className="btn btn-success">
+                    <button
+                        onClick={() => { window.location.href = AUTH_URL; }}
+                        className="btn btn-success"
+                    >
                         Se connecter avec Spotify
                     </button>
                 )}
             </div>
+
+
+
 
             {/* 🔹 Gestion des groupes */}
             <div className="card shadow-sm p-4 mb-4">
@@ -201,6 +225,43 @@ export default function TestPage() {
                     <p className="mt-2">Nombre d'utilisateurs dans ce groupe : {getUsersInSameGroup()}</p>
                 )}
             </div>
+            {currentUser?.group && (
+                <div className="card shadow-sm p-4 mb-4">
+                    <h3>Membres du groupe</h3>
+                    <ul className="list-group">
+                        {users.filter(user => user.group === currentUser?.group).map((user, index) => {
+                            const userSalon = salons.find(salon => salon.name === user.group);
+                            const role = userSalon?.roles?.[user.email] === "admin" ? "Admin" : "Membre";
+
+                            // Vérification basée sur `spotifyId` ou `spotify_link`
+                            const isSpotifyLinked = user.spotifyId || user.spotify_link;
+                            const spotifyStatusText = isSpotifyLinked ? "Compte lié" : "Compte non lié";
+
+                            return (
+                                <li key={index} className="list-group-item d-flex flex-column">
+                                    <div className="d-flex justify-content-between align-items-center">
+                    <span>
+                        {user.email} - <span className="fw-bold">{role}</span>
+                    </span>
+                                        <span className={isSpotifyLinked ? "text-success" : "text-danger"}>
+                        {spotifyStatusText}
+                    </span>
+                                    </div>
+
+                                    {/* 🔹 Afficher les composants Spotify si l'utilisateur a un compte lié */}
+                                    {isSpotifyLinked && (
+                                        <div className="mt-2 text-dark">
+                                            <UserProfile />
+                                            <CurrentTrack />
+                                        </div>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+
+                </div>
+            )}
 
             {/* 🔹 Liste des salons */}
             <button onClick={() => setShowGroups(!showGroups)} className="btn btn-secondary mb-4">
