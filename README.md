@@ -2,7 +2,7 @@
 
 ## Description
 
-Ce projet est une API développée en utilisant Express.js, OpenAPI et Swagger UI pour gérer les utilisateurs et les salons.
+Ce projet est une API développée en utilisant Express.js, OpenAPI et Swagger UI pour gérer les utilisateurs, l'authentification via Spotify et les salons.
 
 ## Installation
 
@@ -51,6 +51,9 @@ npm install swagger-jsdoc swagger-ui-express
 
 - `POST /register` - Inscription d'un nouvel utilisateur.
 - `POST /login` - Connexion d'un utilisateur.
+- `GET /auth/spotify` - Redirection vers l'authentification Spotify.
+- `GET /callback` - Callback après authentification Spotify.
+- `GET /logout` - Déconnexion de l'utilisateur.
 
 ### Utilisateurs & Salons
 
@@ -58,11 +61,12 @@ npm install swagger-jsdoc swagger-ui-express
 - `POST /update-group` - Mise à jour des groupes utilisateurs.
 - `POST /update-salons` - Mise à jour des salons.
 
+### Musique en cours sur Spotify
+
+- `GET /current-track` - Récupération de la musique actuellement jouée sur Spotify (protégé, token requis).
+
 ## Composition de l'équipe
 
-- **Pelagie** - Rôle
-- **Bermond Ethan** - Rôle
-- **Hugo** - Rôle
-
-
-
+- **Pelagie**
+- **Ethan**
+- **Hugo**

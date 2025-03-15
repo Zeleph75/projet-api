@@ -6,11 +6,14 @@ import bcrypt from "bcryptjs";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as SpotifyStrategy } from "passport-spotify";
+import { swaggerDocs, swaggerUI } from "./swagger.js";
+
 
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerDocs));
 
 // Configuration de la session
 app.use(session({ secret: "spotify_secret", resave: true, saveUninitialized: true }));
@@ -81,6 +84,16 @@ passport.use(
         }
     )
 );
+/**
+ * @swagger
+ * /callback:
+ *   get:
+ *     summary: Callback après l'authentification Spotify
+ *     description: Récupère le token Spotify et redirige l'utilisateur vers le frontend.
+ *     responses:
+ *       302:
+ *         description: Redirige vers le front-end avec le token Spotify.
+ */
 
 // Callback de Spotify après l'authentification
 app.get("/callback", passport.authenticate("spotify", { failureRedirect: "/" }), (req, res) => {
@@ -97,8 +110,16 @@ app.get("/callback", passport.authenticate("spotify", { failureRedirect: "/" }),
 
 
 
-
-
+/**
+ * @swagger
+ * /auth/spotify:
+ *   get:
+ *     summary: Connexion avec Spotify
+ *     description: Redirige l'utilisateur vers l'authentification Spotify.
+ *     responses:
+ *       302:
+ *         description: Redirige vers Spotify pour l'authentification.
+ */
 
 // 📌 Routes d'authentification Spotify
 app.get("/auth/spotify", passport.authenticate("spotify", { scope: ["user-read-email", "user-read-private"] }));
@@ -117,6 +138,34 @@ app.get("/logout", (req, res) => {
     });
 });
 // 📌 Nouvelle route pour obtenir la musique en cours
+/**
+ * @swagger
+ * /current-track:
+ *   get:
+ *     summary: Récupérer la musique en cours de lecture sur Spotify
+ *     description: Retourne les détails de la musique en cours d'écoute de l'utilisateur connecté à Spotify.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Succès - Retourne les informations du titre en cours de lecture.
+ *         content:
+ *           application/json:
+ *             example:
+ *               name: "Shape of You"
+ *               artists: "Ed Sheeran"
+ *               album: "Divide"
+ *               image: "https://example.com/image.jpg"
+ *       204:
+ *         description: Aucune musique en cours de lecture.
+ *       400:
+ *         description: Erreur lors de la récupération de la musique.
+ *       401:
+ *         description: Accès non autorisé (token manquant ou invalide).
+ *       500:
+ *         description: Erreur serveur.
+ */
+
 app.get("/current-track", authenticateToken, async (req, res) => {
     const { accessToken } = req.user; // Utiliser le token d'accès Spotify
 

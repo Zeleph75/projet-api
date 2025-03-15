@@ -1,28 +1,28 @@
-import swaggerJsdoc from "swagger-jsdoc";
-import swaggerUi from "swagger-ui-express";
+import swaggerJSDoc from "swagger-jsdoc";
+import swaggerUI from "swagger-ui-express";
 
-const options = {
-    definition: {
+const swaggerOptions = {
+    swaggerDefinition: {
         openapi: "3.0.0",
         info: {
-            title: "API de Gestion des Utilisateurs et Salons",
+            title: "Spotify API",
             version: "1.0.0",
-            description: "Documentation de l'API avec Swagger",
+            description: "Documentation de l'API Spotify Clone",
         },
-        servers: [
-            {
-                url: "http://localhost:5000",
-                description: "Serveur Local",
+        servers: [{ url: "http://localhost:5000" }],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: "http",
+                    scheme: "bearer",
+                    bearerFormat: "JWT",
+                },
             },
-        ],
+        },
     },
-    apis: ["./server.js"], // Indique où Swagger doit chercher les routes
+    apis: ["./server.js"], // Assure-toi que le chemin correspond
 };
 
-const swaggerSpec = swaggerJsdoc(options);
+const swaggerDocs = swaggerJSDoc(swaggerOptions);
 
-const setupSwagger = (app) => {
-    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-};
-
-export default setupSwagger;
+export { swaggerDocs, swaggerUI };

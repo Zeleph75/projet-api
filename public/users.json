@@ -26,6 +26,10 @@
       "email": "123@test.com",
       "password": "$2b$10$pV/tVAeBgz6iwyXObd8JZ.0cviX80kItZ64SLzrjJO5jrCtPG7wXe",
       "group": "Salon C"
+    },
+    {
+      "email": "string",
+      "password": "$2b$10$6oaxcC8RIqY3g83DJMg.Oec7sv8FLxEebYWBKGa8Nfl9pzl58rH7a"
     }
   ],
   "salons": [
